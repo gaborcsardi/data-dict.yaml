@@ -1,6 +1,6 @@
 # `data-dict.yaml`
 
-`data-dict.yaml` is a data dictionary specification that describes a collection of related tables: their contents, constraints, connections, and the specialised vocabulary you need to understand them. It is designed to be a living document, co-written by humans and agents, that tracks your understanding of a dataset as it evolves.
+`data-dict.yaml` is a data dictionary specification that describes a collection of related tables: their contents, constraints, connections, and the specialised vocabulary you need to understand them. It is designed to be a living document, co-written by humans and agents, that tracks your understanding of a dataset as it evolves. 
 
 `data-dict.yaml` is designed to be lightweight. It doesn't attempt to precisely describe every possible type of metadata in a machine readable way. Instead it focuses on precisely recording the most important components, leaving the remainder to plain text fields that require a human or agent to interpret. This means that `data-dict.yaml` doesn't itself do **data cleaning**, but it is a useful complement to tools that do.
 
@@ -30,8 +30,12 @@ Here are a few of the resources that guided the design of `data-dict.yaml`:
 * [Frictionless data](https://datapackage.org/standard/table-schema)
 * [Hex's semantic modelling](https://learn.hex.tech/docs/connect-to-data/semantic-models/semantic-authoring/modeling-specification)
 * [Snowflake's semantic views](https://docs.snowflake.com/en/user-guide/views-semantic/overview)
+* [Soda's contract language](https://docs.soda.io/reference/contract-language-reference)
+* [dbt tests](https://docs.getdbt.com/docs/build/data-tests?version=1.12)
 
 It's worth noting that while semantic models influenced the design of `data-dict.yaml`, it is not a **[semantic model](semantic-models.md)**. This means it doesn't think about dimensions or metrics, because that distinction reflects intended use, not the data itself. It's primarily designed to support data scientists, not data analysts.
+
+Additionally, and while terminology is still evolving, the "semantic" in semantic models is typically interpreted narrowly, focussing on structural semantics (what's needed for queries to return consistent values) not what the data actually _means_.
 
 ## Missing features
 
