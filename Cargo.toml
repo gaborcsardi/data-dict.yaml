@@ -11,3 +11,4 @@ repository = "https://github.com/gaborcsardi/data-dict.yaml"
 [workspace.dependencies]
 data-dict = { path = "crates/data-dict", version = "0.0.1" }
 clap = { version = "4", features = ["derive"] }
+quarto-yaml-validation = { git = "https://github.com/quarto-dev/q2", branch = "main" }
