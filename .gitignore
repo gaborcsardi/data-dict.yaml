@@ -5,3 +5,4 @@
 .DS_Store
 .quarto
 .claude/settings.local.json
+/target/
