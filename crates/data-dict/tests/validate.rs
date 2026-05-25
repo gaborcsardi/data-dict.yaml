@@ -116,6 +116,24 @@ fn strip_terminal_escapes(s: &str) -> String {
     String::from_utf8(out).expect("stripping ASCII escapes preserves UTF-8")
 }
 
+/// Assert that `validate` returns `Err` whose rendered text contains every
+/// expected diagnostic code. Used for bundled examples that exhibit a known
+/// lint finding we can't fix locally (examples/ is overwritten on each
+/// sync).
+fn assert_lint_codes(path: PathBuf, codes: &[&str]) {
+    let err = data_dict::validate(&path)
+        .err()
+        .unwrap_or_else(|| panic!("expected {} to fail lint, but it passed", path.display()));
+    let text = err.to_string();
+    for code in codes {
+        assert!(
+            text.contains(code),
+            "expected diagnostic `{code}` in output for {}, got:\n{text}",
+            path.display(),
+        );
+    }
+}
+
 // --- valid fixtures ------------------------------------------------------
 
 #[test]
@@ -124,18 +142,39 @@ fn minimal() {
 }
 
 #[test]
-fn example_foodbank() {
-    assert_valid(workspace_root().join("examples/foodbank.yaml"));
-}
-
-#[test]
-fn example_otters() {
-    assert_valid(workspace_root().join("examples/otters.yaml"));
-}
-
-#[test]
 fn example_elevators() {
+    // Single table, no relationships — passes both structural and lint
+    // checks.
     assert_valid(workspace_root().join("examples/elevators.yaml"));
+}
+
+// --- bundled examples with known upstream lint findings ------------------
+//
+// foodbank lists `data_points` and `amount` as `conflicts` between `food` and
+// `food_nutrient`, but neither column exists in `food` (they only appear in
+// `food_nutrient` and `food_portion`). The spec says `conflicts` must name
+// columns that appear in BOTH tables on either side of the join, so the
+// linter reports DD005. The fix belongs upstream in foodbank/data-dict.yaml.
+
+#[test]
+fn example_foodbank_has_dd005() {
+    assert_lint_codes(
+        workspace_root().join("examples/foodbank.yaml"),
+        &["DD005"],
+    );
+}
+
+// otters' self-join is `cardinality: one-to-many, join: otters.pup_number =
+// otters.otter_no`. With the spec's "left is the one side" interpretation,
+// `pup_number` would need to be `primary_key` or `unique`. It is not, so the
+// linter reports DD006. The example author likely meant `many-to-one`.
+
+#[test]
+fn example_otters_has_dd006() {
+    assert_lint_codes(
+        workspace_root().join("examples/otters.yaml"),
+        &["DD006"],
+    );
 }
 
 // --- invalid fixtures ----------------------------------------------------
@@ -234,4 +273,44 @@ fn non_string_glossary_value_errors() {
         fixture("invalid/non-string-glossary-value.yaml"),
         &["Expected string"],
     );
+}
+
+// --- lint fixtures -------------------------------------------------------
+
+#[test]
+fn lint_clean_two_tables() {
+    assert_valid(fixture("lint/clean-two-tables.yaml"));
+}
+
+#[test]
+fn lint_dd001_fk_no_relationship() {
+    assert_lint_codes(fixture("lint/dd001-fk-no-relationship.yaml"), &["DD001"]);
+}
+
+#[test]
+fn lint_dd002_missing_table() {
+    assert_lint_codes(fixture("lint/dd002-missing-table.yaml"), &["DD002"]);
+}
+
+#[test]
+fn lint_dd003_missing_column() {
+    assert_lint_codes(fixture("lint/dd003-missing-column.yaml"), &["DD003"]);
+}
+
+#[test]
+fn lint_dd004_bad_join() {
+    assert_lint_codes(fixture("lint/dd004-bad-join.yaml"), &["DD004"]);
+}
+
+#[test]
+fn lint_dd005_conflicts_not_on_both_sides() {
+    assert_lint_codes(
+        fixture("lint/dd005-conflicts-not-on-both-sides.yaml"),
+        &["DD005"],
+    );
+}
+
+#[test]
+fn lint_dd006_cardinality_mismatch() {
+    assert_lint_codes(fixture("lint/dd006-cardinality-mismatch.yaml"), &["DD006"]);
 }
