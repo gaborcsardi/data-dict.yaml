@@ -314,6 +314,14 @@ fn lint_dd005_conflicts_not_on_both_sides() {
     insta::assert_snapshot!(failing_diagnostic("lint/dd005-conflicts-not-on-both-sides.yaml"));
 }
 
+// The opposite of the above: `amount` is genuinely a column on both tables (a
+// real conflict) but is not declared in `conflicts`. DD005 only checks declared
+// entries, so this must lint clean rather than demanding the conflict be named.
+#[test]
+fn lint_dd005_undeclared_conflict_ok() {
+    assert_valid(fixture("lint/dd005-undeclared-conflict-ok.yaml"));
+}
+
 #[test]
 fn lint_dd006_cardinality_mismatch() {
     insta::assert_snapshot!(failing_diagnostic("lint/dd006-cardinality-mismatch.yaml"));
