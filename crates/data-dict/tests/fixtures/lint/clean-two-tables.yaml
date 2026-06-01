@@ -1,4 +1,6 @@
 # expected: lints clean. Minimal two-table dict that satisfies every rule.
+# `food` keeps a table-level description; `food_category` omits it on purpose
+# to exercise that `tables.<name>.description` is optional.
 
 version: "0.1.0"
 
@@ -18,7 +20,6 @@ tables:
         description: Category id.
 
   food_category:
-    description: Food categories.
     source:
       parquet: food_category.parquet
     columns:
