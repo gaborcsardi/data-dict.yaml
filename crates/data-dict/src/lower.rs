@@ -66,6 +66,9 @@ fn lower_column(node: &YamlWithSourceInfo) -> Option<Column> {
     let entries = node.as_hash()?;
     let mut name: Option<Spanned<String>> = None;
     let mut constraints: Vec<Spanned<Constraint>> = Vec::new();
+    let mut col_type: Option<Spanned<String>> = None;
+    let mut has_values = false;
+    let mut has_range = false;
     for entry in entries {
         let Some(key) = entry.key.yaml.as_str() else { continue };
         match key {
@@ -74,6 +77,13 @@ fn lower_column(node: &YamlWithSourceInfo) -> Option<Column> {
                     name = Some(Spanned::new(s.to_string(), entry.value_span.clone()));
                 }
             }
+            "type" => {
+                if let Some(s) = entry.value.yaml.as_str() {
+                    col_type = Some(Spanned::new(s.to_string(), entry.value_span.clone()));
+                }
+            }
+            "values" => has_values = true,
+            "range" => has_range = true,
             "constraints" => {
                 if let Some(items) = entry.value.as_array() {
                     for c in items {
@@ -91,6 +101,9 @@ fn lower_column(node: &YamlWithSourceInfo) -> Option<Column> {
     Some(Column {
         name: name?,
         constraints,
+        col_type,
+        has_values,
+        has_range,
     })
 }
 

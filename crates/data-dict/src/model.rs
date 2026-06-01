@@ -45,6 +45,9 @@ impl Table {
 pub struct Column {
     pub name: Spanned<String>,
     pub constraints: Vec<Spanned<Constraint>>,
+    pub col_type: Option<Spanned<String>>,
+    pub has_values: bool,
+    pub has_range: bool,
 }
 
 impl Column {
