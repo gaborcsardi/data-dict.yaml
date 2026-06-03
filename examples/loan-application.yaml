@@ -1,7 +1,5 @@
 # source: https://github.com/hadley/loan-application
 
-version: 0.1.0
-
 tables:
   account:
     description: >

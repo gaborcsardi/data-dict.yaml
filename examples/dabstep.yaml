@@ -1,7 +1,5 @@
 # source: https://github.com/hadley/dabstep
 
-version: 0.1.0
-
 tables:
   payments:
     description: >
