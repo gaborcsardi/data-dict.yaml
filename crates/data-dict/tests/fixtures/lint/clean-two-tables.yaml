@@ -14,10 +14,12 @@ tables:
       - name: id
         type: number(id)
         constraints: [primary_key]
+        examples: [1, 2, 3, 4, 5]
       - name: food_category_id
         type: number(id)
         constraints: [foreign_key]
         description: Category id.
+        examples: [1, 2, 3, 4, 5]
 
   food_category:
     source:
@@ -27,10 +29,12 @@ tables:
         type: number(id)
         constraints: [primary_key]
         description: Category id.
+        examples: [1, 2, 3, 4, 5]
       - name: name
         type: string
         constraints: [required]
         description: Category name.
+        examples: [Dairy, Fruit, Grain, Meat, Vegetable]
 
 relationships:
   - description: Each food belongs to one category.

@@ -48,6 +48,7 @@ pub struct Column {
     pub col_type: Option<Spanned<String>>,
     pub has_values: bool,
     pub has_range: bool,
+    pub has_examples: bool,
 }
 
 impl Column {

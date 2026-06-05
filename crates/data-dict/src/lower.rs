@@ -69,6 +69,7 @@ fn lower_column(node: &YamlWithSourceInfo) -> Option<Column> {
     let mut col_type: Option<Spanned<String>> = None;
     let mut has_values = false;
     let mut has_range = false;
+    let mut has_examples = false;
     for entry in entries {
         let Some(key) = entry.key.yaml.as_str() else { continue };
         match key {
@@ -84,6 +85,7 @@ fn lower_column(node: &YamlWithSourceInfo) -> Option<Column> {
             }
             "values" => has_values = true,
             "range" => has_range = true,
+            "examples" => has_examples = true,
             "constraints" => {
                 if let Some(items) = entry.value.as_array() {
                     for c in items {
@@ -104,6 +106,7 @@ fn lower_column(node: &YamlWithSourceInfo) -> Option<Column> {
         col_type,
         has_values,
         has_range,
+        has_examples,
     })
 }
 
