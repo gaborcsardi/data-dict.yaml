@@ -17,6 +17,10 @@
 //! - `DD006`: cardinality is inconsistent with the constraints on the joined
 //!   columns (e.g. `one-to-many` whose "one" side lacks `primary_key` /
 //!   `unique`).
+//! - `DD007`: a column's data representation key (`values`, `range`, or
+//!   `examples`) is absent or wrong for its type. Each type expects exactly
+//!   one: `enum` → `values`; `number(ordinal)`, `number(quantity)`, `date`,
+//!   `datetime` → `range`; all others → `examples`.
 
 use quarto_error_reporting::DiagnosticMessageBuilder;
 use quarto_source_map::{SourceContext, SourceInfo};
@@ -68,6 +72,7 @@ pub fn lint(dict: &DataDict) -> Vec<Diagnostic> {
     check_foreign_keys_resolve(dict, &mut out); // DD001
     check_conflicts_present_on_both_sides(dict, &mut out); // DD005
     check_cardinality_consistency(dict, &mut out); // DD006
+    check_column_data_representation(dict, &mut out); // DD007
     out
 }
 
@@ -342,6 +347,131 @@ fn side_has_unique_implied(
             .column(&q.column)
             .map_or(false, |c| c.is_unique_implied())
     })
+}
+
+// --- DD007 --------------------------------------------------------------
+
+const RANGE_TYPES: &[&str] = &["number(ordinal)", "number(quantity)", "date", "datetime"];
+
+fn check_column_data_representation(dict: &DataDict, out: &mut Vec<Diagnostic>) {
+    for (table_name, table) in &dict.tables {
+        for col in &table.columns {
+            let Some(col_type) = &col.col_type else { continue };
+            let type_name = col_type.value.as_str();
+            let span = col.name.span.clone();
+
+            if type_name == "enum" {
+                if !col.has_values {
+                    out.push(Diagnostic {
+                        code: "DD007",
+                        message: format!(
+                            "column `{}.{}` has type `enum` but is missing the required `values` property",
+                            table_name, col.name.value
+                        ),
+                        span,
+                        related: Vec::new(),
+                    });
+                }
+                if col.has_range {
+                    out.push(Diagnostic {
+                        code: "DD007",
+                        message: format!(
+                            "column `{}.{}` has type `enum` but uses `range`; \
+                             enum columns represent their data with `values`",
+                            table_name, col.name.value
+                        ),
+                        span: col.name.span.clone(),
+                        related: Vec::new(),
+                    });
+                }
+                if col.has_examples {
+                    out.push(Diagnostic {
+                        code: "DD007",
+                        message: format!(
+                            "column `{}.{}` has type `enum` but uses `examples`; \
+                             enum columns represent their data with `values`",
+                            table_name, col.name.value
+                        ),
+                        span: col.name.span.clone(),
+                        related: Vec::new(),
+                    });
+                }
+            } else if RANGE_TYPES.contains(&type_name) {
+                if !col.has_range {
+                    out.push(Diagnostic {
+                        code: "DD007",
+                        message: format!(
+                            "column `{}.{}` has type `{}` but is missing the expected `range` property",
+                            table_name, col.name.value, type_name
+                        ),
+                        span,
+                        related: Vec::new(),
+                    });
+                }
+                if col.has_values {
+                    out.push(Diagnostic {
+                        code: "DD007",
+                        message: format!(
+                            "column `{}.{}` has type `{}` but uses `values`; \
+                             use `range` for ordered numeric and date columns",
+                            table_name, col.name.value, type_name
+                        ),
+                        span: col.name.span.clone(),
+                        related: Vec::new(),
+                    });
+                }
+                if col.has_examples {
+                    out.push(Diagnostic {
+                        code: "DD007",
+                        message: format!(
+                            "column `{}.{}` has type `{}` but uses `examples`; \
+                             use `range` for ordered numeric and date columns",
+                            table_name, col.name.value, type_name
+                        ),
+                        span: col.name.span.clone(),
+                        related: Vec::new(),
+                    });
+                }
+            } else {
+                if !col.has_examples {
+                    out.push(Diagnostic {
+                        code: "DD007",
+                        message: format!(
+                            "column `{}.{}` has type `{}` but is missing the expected `examples` property",
+                            table_name, col.name.value, type_name
+                        ),
+                        span,
+                        related: Vec::new(),
+                    });
+                }
+                if col.has_values {
+                    out.push(Diagnostic {
+                        code: "DD007",
+                        message: format!(
+                            "column `{}.{}` has type `{}` but uses `values`; \
+                             only `enum` columns should use `values`",
+                            table_name, col.name.value, type_name
+                        ),
+                        span: col.name.span.clone(),
+                        related: Vec::new(),
+                    });
+                }
+                if col.has_range {
+                    out.push(Diagnostic {
+                        code: "DD007",
+                        message: format!(
+                            "column `{}.{}` has type `{}` but uses `range`; \
+                             `range` is only valid for `number(ordinal)`, `number(quantity)`, \
+                             `date`, and `datetime`",
+                            table_name, col.name.value, type_name
+                        ),
+                        span: col.name.span.clone(),
+                        related: Vec::new(),
+                    });
+                }
+            }
+        }
+    }
 }
 
 // --- Helpers ------------------------------------------------------------

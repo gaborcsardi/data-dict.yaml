@@ -4,7 +4,7 @@
 //! The fixtures double as runnable inputs for the CLI:
 //!
 //!     cargo run -p data-dict-cli -- validate-schema \
-//!         crates/data-dict/tests/fixtures/invalid/enum-without-values.yaml
+//!         crates/data-dict/tests/fixtures/lint/dd007-enum-without-values.yaml
 //!
 //! When adding a new rule, prefer adding a fixture file (with a one-line
 //! `# expected: ...` header) and a one-line test here over inline YAML.
@@ -144,9 +144,12 @@ fn minimal() {
 
 #[test]
 fn example_elevators() {
-    // Single table, no relationships — passes both structural and lint
-    // checks.
-    assert_valid(workspace_root().join("examples/elevators.yaml"));
+    // Three date columns (dv_lastper_insp_date, dv_approval_date,
+    // dv_status_date) lack a `range` property. The fix belongs upstream.
+    assert_lint_codes(
+        workspace_root().join("examples/elevators.yaml"),
+        &["DD007"],
+    );
 }
 
 // --- bundled examples with known upstream lint findings ------------------
@@ -169,12 +172,13 @@ fn example_foodbank_has_dd005() {
 // otters.otter_no`. With the spec's "left is the one side" interpretation,
 // `pup_number` would need to be `primary_key` or `unique`. It is not, so the
 // linter reports DD006. The example author likely meant `many-to-one`.
+// Additionally, the `comments` column (type: string) is missing `examples`.
 
 #[test]
-fn example_otters_has_dd006() {
+fn example_otters_has_dd006_and_dd007() {
     assert_lint_codes(
         workspace_root().join("examples/otters.yaml"),
-        &["DD006"],
+        &["DD006", "DD007"],
     );
 }
 
@@ -217,34 +221,6 @@ fn unknown_top_level_key_errors() {
     assert_invalid(
         fixture("invalid/unknown-top-level-key.yaml"),
         &["Unknown property 'bogus'"],
-    );
-}
-
-#[test]
-#[cfg(unix)]
-fn enum_without_values() {
-    insta::assert_snapshot!(failing_diagnostic("invalid/enum-without-values.yaml"));
-}
-
-#[test]
-fn enum_without_values_errors() {
-    assert_invalid(
-        fixture("invalid/enum-without-values.yaml"),
-        &["Missing required property 'values'"],
-    );
-}
-
-#[test]
-#[cfg(unix)]
-fn range_on_string_type() {
-    insta::assert_snapshot!(failing_diagnostic("invalid/range-on-string-type.yaml"));
-}
-
-#[test]
-fn range_on_string_type_errors() {
-    assert_invalid(
-        fixture("invalid/range-on-string-type.yaml"),
-        &["Missing required property 'values'"],
     );
 }
 
@@ -325,4 +301,29 @@ fn lint_dd005_undeclared_conflict_ok() {
 #[test]
 fn lint_dd006_cardinality_mismatch() {
     insta::assert_snapshot!(failing_diagnostic("lint/dd006-cardinality-mismatch.yaml"));
+}
+
+#[test]
+fn lint_dd007_enum_without_values() {
+    insta::assert_snapshot!(failing_diagnostic("lint/dd007-enum-without-values.yaml"));
+}
+
+#[test]
+fn lint_dd007_range_type_missing_range() {
+    insta::assert_snapshot!(failing_diagnostic("lint/dd007-range-type-missing-range.yaml"));
+}
+
+#[test]
+fn lint_dd007_other_type_missing_examples() {
+    insta::assert_snapshot!(failing_diagnostic("lint/dd007-other-type-missing-examples.yaml"));
+}
+
+#[test]
+fn lint_dd007_wrong_rep_on_enum() {
+    insta::assert_snapshot!(failing_diagnostic("lint/dd007-wrong-rep-on-enum.yaml"));
+}
+
+#[test]
+fn lint_dd008_range_on_string_type() {
+    insta::assert_snapshot!(failing_diagnostic("lint/dd008-range-on-string-type.yaml"));
 }
