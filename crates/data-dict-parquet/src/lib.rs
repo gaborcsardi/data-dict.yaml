@@ -6,6 +6,10 @@ use parquet::schema::types::Type;
 use std::fs::File;
 use std::path::Path;
 
+/// Re-export of the underlying parquet error type, so crates that consume
+/// [`column_types`] can name the error without depending on `parquet` directly.
+pub use parquet::errors::ParquetError;
+
 /// Type information for a single parquet column.
 pub struct ColumnTypeInfo {
     pub name: String,

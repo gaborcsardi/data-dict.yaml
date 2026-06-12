@@ -14,3 +14,4 @@ path = "src/main.rs"
 data-dict.workspace = true
 data-dict-parquet.workspace = true
 clap.workspace = true
+serde_json.workspace = true

@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
+use data_dict::data::{ColumnIssue, DataError};
 
 #[derive(Parser)]
 #[command(name = "data-dict", version, about)]
@@ -25,6 +26,16 @@ enum Command {
 enum ParquetCommand {
     /// Print column types for a parquet file
     Types { path: PathBuf },
+    /// Validate a parquet file's columns against a data dictionary
+    Validate {
+        dict: PathBuf,
+        parquet: PathBuf,
+        #[arg(long)]
+        table: Option<String>,
+        /// Emit results as JSON
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 fn main() -> ExitCode {
@@ -52,6 +63,87 @@ fn main() -> ExitCode {
                 ExitCode::FAILURE
             }
         },
+        Command::Parquet {
+            command:
+                ParquetCommand::Validate {
+                    dict,
+                    parquet,
+                    table,
+                    json,
+                },
+        } => {
+            let result = data_dict::data::validate_parquet(&dict, &parquet, table.as_deref());
+            if json {
+                println!("{}", validate_result_to_json(&result));
+            }
+            match result {
+                Ok(()) => {
+                    if !json {
+                        println!("{}: ok", parquet.display());
+                    }
+                    ExitCode::SUCCESS
+                }
+                Err(err) => {
+                    if !json {
+                        eprintln!("{err}");
+                    }
+                    ExitCode::FAILURE
+                }
+            }
+        }
+    }
+}
+
+fn validate_result_to_json(result: &Result<(), DataError>) -> serde_json::Value {
+    match result {
+        Ok(()) => serde_json::json!({"status": "ok"}),
+        Err(DataError::Schema(e)) => serde_json::json!({
+            "status": "error",
+            "kind": "schema",
+            "message": e.to_string(),
+        }),
+        Err(DataError::Parquet(e)) => serde_json::json!({
+            "status": "error",
+            "kind": "parquet",
+            "message": e.to_string(),
+        }),
+        Err(DataError::TableNotFound { name, available }) => serde_json::json!({
+            "status": "error",
+            "kind": "table_not_found",
+            "name": name,
+            "available": available,
+        }),
+        Err(DataError::AmbiguousTable { available }) => serde_json::json!({
+            "status": "error",
+            "kind": "ambiguous_table",
+            "available": available,
+        }),
+        Err(DataError::Mismatch { table, issues }) => serde_json::json!({
+            "status": "error",
+            "kind": "mismatch",
+            "table": table,
+            "issues": issues.iter().map(issue_to_json).collect::<Vec<_>>(),
+        }),
+    }
+}
+
+fn issue_to_json(issue: &ColumnIssue) -> serde_json::Value {
+    match issue {
+        ColumnIssue::TypeMismatch { column, declared, actual } => serde_json::json!({
+            "kind": "type_mismatch",
+            "column": column,
+            "declared": declared,
+            "actual": actual,
+        }),
+        ColumnIssue::MissingInData { column } => serde_json::json!({
+            "kind": "missing_in_data",
+            "column": column,
+        }),
+        ColumnIssue::ExtraInData { column, actual } => serde_json::json!({
+            "kind": "extra_in_data",
+            "column": column,
+            "actual": actual,
+        }),
     }
 }
 
