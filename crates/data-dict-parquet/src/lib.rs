@@ -112,6 +112,10 @@ fn format_time_unit(unit: TimeUnit) -> &'static str {
 fn parquet_type_to_dict_type(field: &Type) -> String {
     let info = field.get_basic_info();
 
+    // Logical type takes precedence; physical type is the fallback.
+    // Unhandled logical types (Map, List, Time, Json, Bson, Uuid, Unknown) fall
+    // through — Time lands on "number" via INT32/INT64, the rest on "string".
+    // We'll handle nested types, at least List, later.
     if let Some(logical) = info.logical_type() {
         match logical {
             LogicalType::String => return "string".into(),
